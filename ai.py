@@ -16,6 +16,16 @@ from knucklebones import (COLUMNS, ROWS, board_score, column_score,
 
 DIFFICULTIES = ("easy", "normal", "hard")
 
+# Validated difficulty aliases (for robustness)
+DIFFICULTY_ALIASES = {
+    "easy": "easy",
+    "normal": "normal",
+    "hard": "hard",
+    "e": "easy",
+    "n": "normal",
+    "h": "hard",
+}
+
 
 def _gain(board: List[List[int]], column: int, die: int) -> int:
     """Score gained for `board` by placing `die` in `column`."""
@@ -43,7 +53,13 @@ def choose_column(boards: List[List[List[int]]], player: int, die: int,
     if not legal:
         raise ValueError("no legal column")
 
-    if difficulty == "easy":
+    # Validate and normalize difficulty
+    normalized = DIFFICULTY_ALIASES.get(difficulty)
+    if normalized is None:
+        raise ValueError(f"invalid difficulty: {difficulty!r} "
+                         f"(must be one of {DIFFICULTIES})")
+
+    if normalized == "easy":
         return rng.choice(legal)
 
     scored = []
@@ -52,7 +68,7 @@ def choose_column(boards: List[List[List[int]]], player: int, die: int,
         disrupt = _disruption(opp_board, c, die)
         scored.append((c, gain, disrupt))
 
-    if difficulty == "normal":
+    if normalized == "normal":
         # Maximise gain + disruption; tiebreak by gain alone, then disruption,
         # then prefer columns with fewer dice (preserves flexibility).
         def key(x):
